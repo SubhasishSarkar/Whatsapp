@@ -1,4 +1,6 @@
 .sidebar{
+    display: flex;
+    flex-direction: column;
     flex: 0.35;
 }
 
@@ -43,7 +45,8 @@
     border: none;
     margin-left: 10px;
 }
-.sidebar__chat{
+.sidebar__chats{
     flex: 1;
-    background-color: gray;
+    background-color: white;
+    overflow: scroll;
 }
