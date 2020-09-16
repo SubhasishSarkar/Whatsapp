@@ -4,25 +4,39 @@ import { Avatar, IconButton } from '@material-ui/core';
 import {MoreVert, AttachFile, SearchOutlined, InsertEmoticon, Mic} from '@material-ui/icons/';
 import './Chat.css';
 import { useParams } from 'react-router-dom';
-
+import { useStateValue } from './StateProvider'
 import db from './firebase';
+import firebase from 'firebase'
 
 function Chat() {
 
     const [input,setInput]=useState('');    
     const { roomId }= useParams();
     const [roomName, setRoomName] = useState('');
-
+    const [messages, setMessages] = useState([]);
+     const [{user}, dispatch] = useStateValue();
     useEffect(() => {
         if(roomId){
             db.collection('rooms').doc(roomId).onSnapshot(snapshot=>(
                     setRoomName(snapshot.data().name)
             ));
+            db.collection('rooms').doc(roomId)
+             .collection('messages')
+             .orderBy('timestamp','asc')
+             .onSnapshot(snapshot=>(
+                    setMessages(snapshot.docs.map(doc=>doc.data()))
+            ));
         }
-        
     }, [roomId])
     let sendmessage = (e) => {
         e.preventDefault();
+
+        db.collection('rooms').doc(roomId).collection('messages').add({
+            message: input,
+            name: user.displayName,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
         setInput('');
     }
     return (
@@ -31,7 +45,7 @@ function Chat() {
                 <Avatar src={`https://avatars.dicebear.com/api/human/${roomId}.svg`}/>
                 <div className="chat__headerInfo">
                     <h2>{roomName}</h2>
-                    <p>Last seen at ....</p>
+                    <p>last seen {messages.length > 0 ? new Date(messages[messages.length - 1].timestamp?.toDate()).toUTCString() : "..."}</p>
                 </div>
                 <div className="chat__headerRight">
                     <IconButton>
@@ -47,16 +61,13 @@ function Chat() {
             </div>
                 
             <div className="chat__body">
-                <p className="chat__message">
-                    <span className="chat__name">Subhasish Sarkar</span>
-                    Hey Guys
-                    <span className="chat__timestamp">3:50pm</span>
-                </p>
-                <p className={`chat__message ${ true && 'chat__reciver'}`}>
-                    <span className="chat__name">Subhasish Sarkar</span>
-                    Hey Guys
-                    <span className="chat__timestamp">3:50pm</span>
-                </p>
+                {messages.map((message,index)=>(
+                    <p key={index} className={`chat__message ${ message.name === user.displayName && 'chat__reciver'}`}>
+                        <span className="chat__name">{message.name}</span>
+                        {message.message}
+                        <span className="chat__timestamp">{new Date(message.timestamp?.toDate()).toUTCString()}</span>
+                    </p>
+                ))}
             </div>
             <div className="chat__footer">
                 <InsertEmoticon/>
